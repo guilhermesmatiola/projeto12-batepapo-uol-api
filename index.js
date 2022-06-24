@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import dotenv from "dotenv";
 import {MongoClient} from "mongodb";
 import chalk from "chalk";
+import joi from "joi";
 
 dotenv.config();
 
@@ -18,18 +19,42 @@ mongoClient.connect().then(()=> {
     db=mongoClient.db("batepapouol");
 });
 
+const nameSchema = joi.object({
+    name: joi.string().required()
+});
+
+const messageSchema = joi.object({
+    to: joi.string().required(),
+    text: joi.string().required(),
+    type: joi.string().required().valid(...['message','private_message'])
+});
+
 app.post("/participants", async (req, res)=>{
 
     const {name} = req.body;
 
+    const validation = nameSchema.validate(req.body);
+    if (validation.error) {
+        res.sendStatus(422);
+        return;
+    }
+
+    const usedUser = await db.collection('users').find({name:name}).toArray();
+    if(usedUser.length>0){
+        res.sendStatus(409);
+        return;
+    }
+
     try {
         //salvar participante
+        
         await db.collection("users").insertOne(
             {
                 name:name,
                 lastStatus: Date.now()
             }
         );
+        
         //salvar mensagem de entrada do participante
         await db.collection("messages").insertOne(
             {
@@ -56,13 +81,27 @@ app.get("/participants", async (req, res)=>{
     promise.then(participants => res.send(participants));
     
 });
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 app.post("/messages", async (req,res)=> {
 
     const {to, text, type} = req.body;
     const from = req.header("user");
 
+    const validation = messageSchema.validate(req.body, {abortEarly: false});
+    if (validation.error) {
+        res.sendStatus(422);
+        return;
+    }
+
+
     try{
+
+        const participantExist = await db.collection("users").findOne({ name: from });
+
+        if (!participantExist) {
+        return res.sendStatus(422);
+        }
+
         await db.collection("messages").insertOne(
             {
                 from,
@@ -78,10 +117,11 @@ app.post("/messages", async (req,res)=> {
         res.sendStatus(500);
     }
 });
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 app.get("/messages", async (req, res) => { //
     
-    const limit = parseInt(req.query.limit);
+    //const limit = parseInt(req.query.limit);
+    const {limit} = req.query;
     const user = req.header("user");
 
     try{
