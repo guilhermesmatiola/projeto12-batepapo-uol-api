@@ -81,7 +81,7 @@ app.get("/participants", async (req, res)=>{
     promise.then(participants => res.send(participants));
     
 });
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 app.post("/messages", async (req,res)=> {
 
     const {to, text, type} = req.body;
@@ -117,7 +117,7 @@ app.post("/messages", async (req,res)=> {
         res.sendStatus(500);
     }
 });
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 app.get("/messages", async (req, res) => { //
     
     //const limit = parseInt(req.query.limit);
