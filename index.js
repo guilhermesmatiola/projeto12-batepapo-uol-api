@@ -42,7 +42,8 @@ app.post("/participants", async (req, res)=>{
         );
 
         res.sendStatus(201);
-    }catch (error){
+    }
+    catch (error){
         res.sendStatus(500);
     }
     
@@ -50,23 +51,68 @@ app.post("/participants", async (req, res)=>{
 
 app.get("/participants", async (req, res)=>{
 
-
     try {
         const usuarios = db.collection("users").find().toArray();
         res.sendStatus(usuarios);
 
-    }catch (error){
+    }
+    catch (error){
         res.sendStatus(500);
     }
     
 });
 
-app.post("/messages", (req,res)=> {
+app.post("/messages", async (req,res)=> {
 
+    const {to, text, type} = req.body;
+    const from = req.header("user");
+
+    try{
+        await db.collection("messages").insertOne(
+            {
+                from,
+                to,
+                text,
+                type,
+                time: dayjs().format("HH:mm:ss")
+            }
+        );res.sendStatus(201);
+
+    }
+    catch (error){
+        res.sendStatus(500);
+    }
 });
 
-app.get("/messages", (req, res) => {
+app.get("/messages", async (req, res) => { //
     
+    const limit = parseInt(req.query.limit);
+    const user = req.header("user");
+
+    try{
+        const messages = await db.collection("messages").find({}).toArray();
+        const messagesFilter = messages.filter( (message)=>{
+            const {from,to,type} = message;
+            if(from === user || to === "Todos" || type === 'status'|| type === 'message' || (type === 'private_message' && to === user)){
+                return true;
+            }
+            else{
+                return false;
+            }
+        });
+
+        if (limit) {
+            const messagesLimit = messagesFilter.slice(-limit);
+            return res.send(messagesLimit);
+          }
+      
+          res.send(messagesFilter);
+
+    }
+    catch (error){
+        res.sendStatus(500);
+    }
+
 });
 
 app.post("/status", (req, res) => {
