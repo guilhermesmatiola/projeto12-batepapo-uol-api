@@ -115,7 +115,6 @@ app.post("/status", (req, res) => {
     const promise = db.collection('users').find({name:user}).toArray();
     promise.then(userdata => {
        if(userdata){
-        //const participant = { $set:{ lastStatus: Date.now()}};
         db.collection('users').updateOne({name:user},{ $set:{ lastStatus: Date.now()}});
         res.sendStatus(200);
        }else{
