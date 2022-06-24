@@ -51,14 +51,9 @@ app.post("/participants", async (req, res)=>{
 
 app.get("/participants", async (req, res)=>{
 
-    try {
-        const usuarios = db.collection("users").find().toArray();
-        res.sendStatus(usuarios);
-
-    }
-    catch (error){
-        res.sendStatus(500);
-    }
+    const promise = db.collection('users').find().toArray();
+    
+    promise.then(participants => res.send(participants));
     
 });
 
@@ -116,9 +111,41 @@ app.get("/messages", async (req, res) => { //
 });
 
 app.post("/status", (req, res) => {
-    
+    const { user } = req.headers;
+    const promise = db.collection('users').find({name:user}).toArray();
+    promise.then(userdata => {
+       if(userdata){
+        //const participant = { $set:{ lastStatus: Date.now()}};
+        db.collection('users').updateOne({name:user},{ $set:{ lastStatus: Date.now()}});
+        res.sendStatus(200);
+       }else{
+        res.sendStatus(404);
+       }
+    });
 });
 
+setInterval(isOnline, 15000);
+
+async function isOnline(){
+
+    try{
+        const participants = await db.collection("users").find().toArray();
+
+        for(let i=0;i<participants.length;i++){
+            if( (Date.now()-participants[i].lastStatus) > 10000 ){
+                const message = {from: participants[i].name, to: 'Todos', text: 'sai da sala...', type: 'status', time: dayjs().format("HH:mm:ss")};
+                
+                //await 
+                db.collection('messages').insertOne(message);
+                //await 
+                db.collection('users').deleteOne(participants[i]);
+            }
+        }
+    }
+    catch (error){
+        res.sendStatus(500);
+    }
+}
 
 app.listen(5000, ()=>{
     console.log(chalk.bold.yellow("server on"));
