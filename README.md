@@ -1,4 +1,4 @@
-Projeto 12 - batepapouol-api
+Batepapouol-api
 
 
 API para simular um chat entre usuarios, permitindo enviar mensagens publicas e privadas, usando MongoDB
